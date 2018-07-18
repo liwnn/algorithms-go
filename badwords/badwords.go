@@ -9,6 +9,7 @@ type BadWords struct {
 	hashSet        map[string]bool // 脏字集合
 	firstCharCheck *bitarray.BitArray
 	allCharCheck   *bitarray.BitArray
+	lastCharCheck  *bitarray.BitArray
 	maxLength      int
 }
 
@@ -18,6 +19,7 @@ func NewBadWords() *BadWords {
 		hashSet:        make(map[string]bool),
 		firstCharCheck: bitarray.NewBitArray(0xffff),
 		allCharCheck:   bitarray.NewBitArray(0xffff),
+		lastCharCheck:  bitarray.NewBitArray(0xffff),
 	}
 }
 
@@ -33,9 +35,21 @@ func (b *BadWords) AddBadWord(word string) {
 	if len(runeWord) > b.maxLength {
 		b.maxLength = len(runeWord)
 	}
-	b.firstCharCheck.Set(int(runeWord[0]), true)
-	for _, c := range runeWord {
-		b.allCharCheck.Set(int(c), true)
+	for i, c := range runeWord {
+		set := false
+		if i == 0 {
+			b.firstCharCheck.Set(int(c), true)
+			set = true
+		}
+
+		if i == len(runeWord)-1 {
+			b.lastCharCheck.Set(int(c), true)
+			set = true
+		}
+
+		if set == false {
+			b.allCharCheck.Set(int(c), true)
+		}
 	}
 }
 
@@ -52,23 +66,30 @@ func (b *BadWords) ReplaceBadWord(text string, replaceChar rune) string {
 		sub = sub[:0]
 		spaceCount := 0
 		for j := 0; j < (b.maxLength+spaceCount) && j < charCount-index; j++ {
-			if runeText[index+j] == ' ' || runeText[index+j] == '\t' {
-				spaceCount++
-				continue
-			}
-			if !b.allCharCheck.Get(int(runeText[index+j])) {
-				break
+			if j > 0 {
+				if runeText[index+j] == ' ' || runeText[index+j] == '\t' {
+					spaceCount++
+					continue
+				}
 			}
 
 			sub = append(sub, runeText[index+j])
-			if _, ok := b.hashSet[string(sub)]; ok {
-				for i := index; i <= index+j; i++ {
-					if !(runeText[i] == ' ' || runeText[i] == '\t') {
-						runeText[i] = replaceChar
+			if b.lastCharCheck.Get(int(runeText[index+j])) {
+				if _, ok := b.hashSet[string(sub)]; ok {
+					for i := index; i <= index+j; i++ {
+						if !(runeText[i] == ' ' || runeText[i] == '\t') {
+							runeText[i] = replaceChar
+						}
 					}
+					index += j
+					break
 				}
-				index += j
-				break
+			}
+
+			if j > 0 {
+				if !b.allCharCheck.Get(int(runeText[index+j])) {
+					break
+				}
 			}
 		}
 	}
