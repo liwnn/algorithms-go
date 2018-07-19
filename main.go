@@ -1,16 +1,15 @@
-package badwords_test
+package main
 
 import (
 	"fmt"
-	"testing"
 
 	"algorithms-go/badwords"
 )
 
-func TestBadWords(t *testing.T) {
+func main() {
 	b := badwords.NewBadWords()
 	b.AddBadWord("sb")
 	b.AddBadWord("bt")
-	c := b.ReplaceBadWord("s bb bt ttb", '*')
+	c := b.ReplaceBadWord("s bb btstb", '*')
 	fmt.Println(c)
 }
