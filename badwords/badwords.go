@@ -109,17 +109,24 @@ func (b *BadWords) ContainsBadWord(text string) bool {
 		sub = sub[:0]
 		spaceCount := 0
 		for j := 0; j < b.maxLength+spaceCount && j < charCount-index; j++ {
-			if b.isJumpChar(runeText[index+j]) {
-				spaceCount++
-				continue
-			}
-			if !b.allCharCheck.Get(int(runeText[index+j])) {
-				break
+			if j > 0 {
+				if b.isJumpChar(runeText[index+j]) {
+					spaceCount++
+					continue
+				}
 			}
 
 			sub = append(sub, runeText[index+j])
-			if _, ok := b.hashSet[string(sub)]; ok {
-				return true
+			if b.lastCharCheck.Get(int(runeText[index+j])) {
+				if _, ok := b.hashSet[string(sub)]; ok {
+					return true
+				}
+			}
+
+			if j > 0 {
+				if !b.allCharCheck.Get(int(runeText[index+j])) {
+					break
+				}
 			}
 		}
 	}
