@@ -8,8 +8,10 @@ import (
 
 func main() {
 	b := badwords.NewBadWords()
-	b.AddBadWord("sb")
-	b.AddBadWord("bt")
-	c := b.ReplaceBadWord("s bb btstb", '*')
+	b.AddBadWord("SB")
+	if b.ContainsBadWord("Sb") {
+		fmt.Println("has")
+	}
+	c := b.ReplaceBadWord("sB", '*')
 	fmt.Println(c)
 }
