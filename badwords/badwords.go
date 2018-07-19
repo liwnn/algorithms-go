@@ -52,7 +52,7 @@ func (b *BadWords) ReplaceBadWord(text string, replaceChar rune) string {
 		sub = sub[:0]
 		spaceCount := 0
 		for j := 0; j < (b.maxLength+spaceCount) && j < charCount-index; j++ {
-			if runeText[index+j] == ' ' || runeText[index+j] == '\t' {
+			if b.isJumpChar(runeText[index+j]) {
 				spaceCount++
 				continue
 			}
@@ -63,7 +63,7 @@ func (b *BadWords) ReplaceBadWord(text string, replaceChar rune) string {
 			sub = append(sub, runeText[index+j])
 			if _, ok := b.hashSet[string(sub)]; ok {
 				for i := index; i <= index+j; i++ {
-					if !(runeText[i] == ' ' || runeText[i] == '\t') {
+					if !(b.isJumpChar(runeText[i])) {
 						runeText[i] = replaceChar
 					}
 				}
@@ -88,7 +88,7 @@ func (b *BadWords) ContainsBadWord(text string) bool {
 		sub = sub[:0]
 		spaceCount := 0
 		for j := 0; j < b.maxLength+spaceCount && j < charCount-index; j++ {
-			if runeText[index+j] == ' ' || runeText[index+j] == '\t' {
+			if b.isJumpChar(runeText[index+j]) {
 				spaceCount++
 				continue
 			}
@@ -103,4 +103,8 @@ func (b *BadWords) ContainsBadWord(text string) bool {
 		}
 	}
 	return false
+}
+
+func (b *BadWords) isJumpChar(c rune) bool {
+	return c == ' ' || c == '\t'
 }
