@@ -1,55 +1,71 @@
 package badwords
 
 import (
+	"strings"
+
 	"algorithms-go/bitarray"
 )
 
 // BadWords 屏蔽字
 type BadWords struct {
 	hashSet        map[string]bool // 脏字集合
-	firstCharCheck *bitarray.BitArray
-	allCharCheck   *bitarray.BitArray
+	fastCharCheck  [0xffff]byte
+	fastCharLength [0xffff]byte
 	lastCharCheck  *bitarray.BitArray
+	oneCharCheck   *bitarray.BitArray
 	maxLength      int
+	temp           []rune
 }
 
 // NewBadWords new
 func NewBadWords() *BadWords {
 	return &BadWords{
-		hashSet:        make(map[string]bool),
-		firstCharCheck: bitarray.NewBitArray(0xffff),
-		allCharCheck:   bitarray.NewBitArray(0xffff),
-		lastCharCheck:  bitarray.NewBitArray(0xffff),
+		hashSet:       make(map[string]bool),
+		lastCharCheck: bitarray.NewBitArray(0xffff),
+		oneCharCheck:  bitarray.NewBitArray(0xffff),
+		maxLength:     0,
 	}
 }
 
 // AddBadWord 增加屏蔽字
 func (b *BadWords) AddBadWord(word string) {
-	_, ok := b.hashSet[word]
-	if ok {
-		return
-	}
-	b.hashSet[word] = true
-
 	runeWord := []rune(word)
+	if len(runeWord) == 1 {
+		if b.oneCharCheck.Get(int(runeWord[0])) {
+			return
+		}
+		b.oneCharCheck.Set(int(runeWord[0]), true)
+		b.fastCharCheck[int(runeWord[0])] |= 1
+	} else {
+		if _, ok := b.hashSet[word]; ok {
+			return
+		}
+		b.hashSet[word] = true
+
+		for i, c := range runeWord {
+			if i == len(runeWord)-1 {
+				b.lastCharCheck.Set(int(c), true)
+			} else if i < 7 {
+				b.fastCharCheck[int(c)] |= 1 << uint32(i)
+			} else {
+				b.fastCharCheck[int(c)] |= 0x80
+			}
+		}
+		m := uint32(len(runeWord) - 2)
+		if m > 7 {
+			m = 7
+		}
+		b.fastCharLength[runeWord[0]] |= 1 << m
+	}
+
 	if len(runeWord) > b.maxLength {
 		b.maxLength = len(runeWord)
 	}
-	for i, c := range runeWord {
-		set := false
-		if i == 0 {
-			b.firstCharCheck.Set(int(c), true)
-			set = true
-		}
 
-		if i == len(runeWord)-1 {
-			b.lastCharCheck.Set(int(c), true)
-			set = true
-		}
-
-		if set == false {
-			b.allCharCheck.Set(int(c), true)
-		}
+	// 小写字母都屏蔽，大写字母之屏蔽大写字母
+	upperWord := strings.ToUpper(word)
+	if upperWord != word {
+		b.AddBadWord(upperWord)
 	}
 }
 
@@ -59,22 +75,32 @@ func (b *BadWords) ReplaceBadWord(text string, replaceChar rune) string {
 	var charCount = len(runeText)
 	sub := make([]rune, 0, b.maxLength)
 	for index := 0; index < charCount; index++ {
-		if !b.firstCharCheck.Get(int(runeText[index])) {
+		firstChar := runeText[index]
+		if b.fastCharCheck[int(firstChar)]&1 == 0 {
+			continue
+		}
+
+		if b.oneCharCheck.Get(int(firstChar)) {
+			runeText[index] = replaceChar
 			continue
 		}
 
 		sub = sub[:0]
+		sub = append(sub, firstChar)
 		spaceCount := 0
-		for j := 0; j < (b.maxLength+spaceCount) && j < charCount-index; j++ {
-			if j > 0 {
-				if b.isJumpChar(runeText[index+j]) {
-					spaceCount++
-					continue
-				}
+		for j := 1; j < (b.maxLength+spaceCount) && j < charCount-index; j++ {
+			currentChar := runeText[index+j]
+			if b.isJumpChar(currentChar) {
+				spaceCount++
+				continue
 			}
 
-			sub = append(sub, runeText[index+j])
-			if b.lastCharCheck.Get(int(runeText[index+j])) {
+			m := uint32(j - spaceCount - 1)
+			if m > 7 {
+				m = 7
+			}
+			sub = append(sub, currentChar)
+			if b.fastCharLength[firstChar]>>m&1 == 1 && b.lastCharCheck.Get(int(runeText[index+j])) {
 				if _, ok := b.hashSet[string(sub)]; ok {
 					for i := index; i <= index+j; i++ {
 						if !(b.isJumpChar(runeText[i])) {
@@ -86,10 +112,12 @@ func (b *BadWords) ReplaceBadWord(text string, replaceChar rune) string {
 				}
 			}
 
-			if j > 0 {
-				if !b.allCharCheck.Get(int(runeText[index+j])) {
-					break
-				}
+			k := uint32(j - spaceCount)
+			if k > 7 {
+				k = 7
+			}
+			if b.fastCharCheck[int(currentChar)]&(1<<k) == 0 {
+				break
 			}
 		}
 	}
@@ -102,31 +130,42 @@ func (b *BadWords) ContainsBadWord(text string) bool {
 	var charCount = len(runeText)
 	sub := make([]rune, 0, b.maxLength)
 	for index := 0; index < charCount; index++ {
-		if !b.firstCharCheck.Get(int(runeText[index])) {
+		firstChar := runeText[index]
+		if b.fastCharCheck[int(firstChar)]&1 == 0 {
 			continue
 		}
 
+		if b.oneCharCheck.Get(int(firstChar)) {
+			return true
+		}
+
 		sub = sub[:0]
+		sub = append(sub, firstChar)
 		spaceCount := 0
-		for j := 0; j < b.maxLength+spaceCount && j < charCount-index; j++ {
-			if j > 0 {
-				if b.isJumpChar(runeText[index+j]) {
-					spaceCount++
-					continue
-				}
+		for j := 1; j < b.maxLength+spaceCount && j < charCount-index; j++ {
+			currentChar := runeText[index+j]
+			if b.isJumpChar(currentChar) {
+				spaceCount++
+				continue
 			}
 
-			sub = append(sub, runeText[index+j])
-			if b.lastCharCheck.Get(int(runeText[index+j])) {
+			m := uint32(j - spaceCount - 1)
+			if m > 7 {
+				m = 7
+			}
+			sub = append(sub, currentChar)
+			if b.fastCharLength[firstChar]>>m&1 == 1 && b.lastCharCheck.Get(int(currentChar)) {
 				if _, ok := b.hashSet[string(sub)]; ok {
 					return true
 				}
 			}
 
-			if j > 0 {
-				if !b.allCharCheck.Get(int(runeText[index+j])) {
-					break
-				}
+			k := uint32(j - spaceCount)
+			if k > 7 {
+				k = 7
+			}
+			if b.fastCharCheck[int(currentChar)]&(1<<k) == 0 {
+				break
 			}
 		}
 	}
