@@ -8,7 +8,7 @@ import (
 
 func main() {
 	b := badwords.NewBadWords()
-	b.AddBadWord("SB")
+	b.AddBadWord("Sb")
 	if b.ContainsBadWord("Sb") {
 		fmt.Println("has")
 	}
