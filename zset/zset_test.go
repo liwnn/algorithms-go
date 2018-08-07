@@ -1,38 +1,45 @@
-package skiplist
+package zset
 
 import (
-	"fmt"
 	"math/rand"
 	"testing"
 	"time"
 )
 
-func TestExample(t *testing.T) {
+func init() {
 	rand.Seed(time.Now().UnixNano())
+}
 
-	sl := NewSkipList()
-	sl.Insert(1, 1)
-	sl.Insert(1, 2)
-	sl.Insert(1, 3)
-
-	for i := sl.header.forward[0]; i != nil; i = i.forward[0] {
-		fmt.Println(i.key, i.value)
+func TestAdd(t *testing.T) {
+	zs := NewZSet()
+	for i := 0; i < 1000; i++ {
+		zs.Add(i, 10000+i)
 	}
-
-	sl.Delete(1)
+	if zs.zsl.length != 1000 {
+		t.Error("Add error")
+	}
 }
 
-func TestInsert(t *testing.T) {
-	l := NewSkipList()
-	l.Insert(0, 0)
+func TestDelete(t *testing.T) {
+	zs := NewZSet()
+	for i := 0; i < 1000; i++ {
+		zs.Add(i, 10000+i)
+	}
 }
 
-func BenchmarkInsert(b *testing.B) {
+func BenchmarkAdd(b *testing.B) {
+	r := NewZSet()
+	r.zsl.maxLevel = 32
 	for i := 0; i < b.N; i++ {
-		l := NewSkipList()
-		l.maxLevel = 8
-		for j := 0; j < 5000*3; j++ {
-			l.Insert(i/5000, i)
-		}
+		r.Add(6*i, i)
 	}
+	// for i := 0; i < b.N; i++ {
+	// 	if i%5000 <= r.MinScore() {
+	// 		continue
+	// 	}
+	// 	r.Add(10*i, i%5000)
+	// 	if r.Length() > 5000 {
+	// 		r.DeleteHeader()
+	// 	}
+	// }
 }
