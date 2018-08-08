@@ -104,7 +104,7 @@ func (list *SkipList) Delete(searchKey int) {
 			}
 			update[i].forward[i] = x.forward[i]
 		}
-		for list.level > 0 && list.header.forward[list.level-1] == nil {
+		for list.level > 1 && list.header.forward[list.level-1] == nil {
 			list.level--
 		}
 	}

@@ -15,10 +15,10 @@ func Example() {
 	zs.Add(2, 10002)
 	zs.Add(3, 10003)
 	zs.Add(2, 10004)
-	fmt.Println(zs.Rank(10002))
-	fmt.Println(zs.Rank(10003))
+	fmt.Println(zs.Rank(10002, false))
+	fmt.Println(zs.Rank(10003, false))
 	zs.Delete(10001)
-	fmt.Println(zs.Rank(10002))
+	fmt.Println(zs.Rank(10002, false))
 	// Output:
 	// 2
 	// 3
