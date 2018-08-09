@@ -20,6 +20,11 @@ func (e *Entry) Score() uint32 {
 	return e.score
 }
 
+// SetScore set score
+func (e *Entry) SetScore(score uint32) {
+	e.score = score
+}
+
 // Key return key
 func (e *Entry) Key() uint64 {
 	return e.key
@@ -159,7 +164,7 @@ func (list *zskipList) updateScore(ele *Entry, score uint32) {
 	x = x.level[0].forward
 	if x != nil && x.ele.Score() == ele.Score() && x.ele.Key() == ele.Key() {
 		if score > ele.Score() && (x.level[0].forward == nil || score < x.level[0].forward.ele.Score()) {
-			ele.score = score
+			ele.SetScore(score)
 			return
 		}
 
@@ -177,7 +182,7 @@ func (list *zskipList) updateScore(ele *Entry, score uint32) {
 		}
 		list.length--
 
-		ele.score = score
+		ele.SetScore(score)
 		list.insert(ele)
 	}
 }
