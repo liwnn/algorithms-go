@@ -20,7 +20,7 @@ func Example() {
 	zs.Delete(10001)
 	fmt.Println(zs.Rank(10002, false))
 	// Output:
-	// 2
 	// 3
-	// 1
+	// 4
+	// 2
 }

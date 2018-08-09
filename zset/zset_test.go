@@ -73,7 +73,7 @@ func TestRange(t *testing.T) {
 func BenchmarkInsert(b *testing.B) {
 	sl := zslCreate()
 	for i := 0; i < b.N; i++ {
-		randData := &Entry{
+		randData := &Element{
 			key:   uint64(i),
 			score: uint32(i),
 		}
@@ -95,7 +95,7 @@ func BenchmarkChange(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		if 10*uint32(i) < r.MinScore() {
+		if r.Length() >= 5000 && 10*uint32(i) < r.MinScore() {
 			continue
 		}
 		r.Add(10*uint32(i), uint64(i)%5000)
