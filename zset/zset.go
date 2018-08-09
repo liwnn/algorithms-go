@@ -36,9 +36,10 @@ type zSkipListLevel struct {
 
 // node is an element of a skip list
 type zSkipListNode struct {
-	ele   *Element
-	level []zSkipListLevel
-	order int
+	ele      *Element
+	backward *zSkipListNode
+	level    []zSkipListLevel
+	order    int
 }
 
 func zslCreateNode(level int, ele *Element) *zSkipListNode {
@@ -52,6 +53,7 @@ func zslCreateNode(level int, ele *Element) *zSkipListNode {
 // zSkipList represents a skip list
 type zSkipList struct {
 	header *zSkipListNode
+	tail   *zSkipListNode
 	length uint32
 	level  int // current level count
 
@@ -110,9 +112,19 @@ func (list *zSkipList) insert(ele *Element) *zSkipListNode {
 	if x.level[0].forward != nil && x.ele.Score() == x.level[0].forward.ele.Score() {
 		x.order = x.level[0].forward.order + 1
 	}
-
 	for i := lvl; i < list.level; i++ {
 		update[i].level[i].span++
+	}
+
+	if update[0] == list.header {
+		x.backward = nil
+	} else {
+		x.backward = update[0]
+	}
+	if x.level[0].forward == nil {
+		list.tail = x
+	} else {
+		x.level[0].forward.backward = x
 	}
 	list.length++
 	return x
@@ -142,6 +154,11 @@ func (list *zSkipList) delete(node *zSkipListNode) *zSkipListNode {
 		}
 		for list.level > 0 && list.header.level[list.level-1].forward == nil {
 			list.level--
+		}
+		if x.level[0].forward == nil {
+			list.tail = x.backward
+		} else {
+			x.level[0].forward.backward = x.backward
 		}
 		list.length--
 		return x
@@ -305,19 +322,18 @@ func (zs *ZSet) Range(start uint32, end uint32, reverse bool) []*Element {
 		end = zs.zsl.length
 	}
 	rangeLen := end - start + 1
+	var ret = make([]*Element, rangeLen)
 	if reverse {
-		node := zs.zsl.getElementByRank(zs.zsl.length - end + 1)
-		var ret = make([]*Element, rangeLen)
+		node := zs.zsl.getElementByRank(zs.zsl.length - start + 1)
 		for i := uint32(0); i < rangeLen; i++ {
-			ret[rangeLen-i-1] = node.ele
-			node = node.level[0].forward
+			ret[i] = node.ele
+			node = node.backward
 		}
 		return ret
 	}
 	node := zs.zsl.getElementByRank(start)
-	var ret = make([]*Element, 0, rangeLen)
 	for i := uint32(0); i < rangeLen; i++ {
-		ret = append(ret, node.ele)
+		ret[i] = node.ele
 		node = node.level[0].forward
 	}
 	return ret
@@ -334,6 +350,14 @@ func (zs *ZSet) MinScore() uint32 {
 		return zs.zsl.header.level[0].forward.ele.Score()
 	}
 	return 0
+}
+
+// Tail return the last element
+func (zs *ZSet) Tail() *Element {
+	if zs.zsl.tail != nil {
+		return zs.zsl.tail.ele
+	}
+	return nil
 }
 
 // DeleteFirst 删除第一个元素
