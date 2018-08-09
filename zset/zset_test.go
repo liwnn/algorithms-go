@@ -38,9 +38,12 @@ func TestDelete(t *testing.T) {
 
 func TestGetRank(t *testing.T) {
 	zs := NewZSet()
-	zs.Add(1, 10001)
-	zs.Add(1, 10002)
-	fmt.Println(zs.Rank(10001, true))
+	zs.Add(1, 1)
+	zs.Add(1, 2)
+	zs.Add(1, 3)
+	zs.Add(1, 4)
+	zs.Add(1, 5)
+	fmt.Println(zs.Rank(3, true))
 }
 
 func TestGetElementByRank(t *testing.T) {
@@ -67,28 +70,34 @@ func BenchmarkInsert(b *testing.B) {
 	sl := zslCreate()
 	for i := 0; i < b.N; i++ {
 		randData := &Entry{
-			val:   1,
-			score: 1,
+			val:   i,
+			score: i % 20000,
 		}
-		sl.Insert(1, randData)
+		sl.Insert(i, randData)
 	}
 }
 
 func BenchmarkAdd(b *testing.B) {
 	r := NewZSet()
+	for i := 0; i < 5000; i++ {
+		r.Add(6*i, i%20000)
+	}
 	for i := 0; i < b.N; i++ {
-		r.Add(6*i, i)
+		r.Add(10*i, i%20000)
 	}
 }
 
 func BenchmarkChange(b *testing.B) {
 	r := NewZSet()
 	for i := 0; i < 5000; i++ {
-		r.Add(6*i, i)
+		r.Add(6*i, i%20000)
 	}
 
 	for i := 0; i < b.N; i++ {
-		r.Add(10*i, i/7500)
+		if 10*i < r.MinScore() {
+			continue
+		}
+		r.Add(10*i, i%20000)
 		if r.Length() > 5000 {
 			r.DeleteHeader()
 		}

@@ -5,13 +5,14 @@ import (
 )
 
 const (
-	ZSKIPLIST_MAXLEVEL = 32
+	skipListMaxLevel = 32
 )
 
 // Entry e
 type Entry struct {
 	val   int
 	score int
+	order int
 }
 
 type zskiplistLevel struct {
@@ -51,8 +52,8 @@ type SkipList struct {
 func zslCreate() *SkipList {
 	zsl := &SkipList{
 		level:    1,
-		maxLevel: ZSKIPLIST_MAXLEVEL, // (1/p)^maxLevel >= maxNode
-		p:        0.25,               // Skiplist P = 1/4
+		maxLevel: skipListMaxLevel, // (1/p)^maxLevel >= maxNode
+		p:        0.25,             // Skiplist P = 1/4
 	}
 	zsl.header = zslCreateNode(zsl.maxLevel, 0, nil)
 	zsl.update = make([]*zskiplistNode, zsl.maxLevel)
@@ -62,7 +63,7 @@ func zslCreate() *SkipList {
 // Insert element
 func (list *SkipList) Insert(score int, ele *Entry) {
 	var update = list.update
-	var rank [ZSKIPLIST_MAXLEVEL]uint
+	var rank [skipListMaxLevel]uint
 	x := list.header
 	for i := list.level - 1; i >= 0; i-- {
 		if i == list.level-1 {
@@ -93,6 +94,9 @@ func (list *SkipList) Insert(score int, ele *Entry) {
 		x.level[i].span = (update[i].level[i].span - (rank[0] - rank[i]))
 		update[i].level[i].span = (rank[0] - rank[i]) + 1
 	}
+	if x.level[0].forward != nil && x.score == x.level[0].forward.score {
+		x.ele.order = x.level[0].forward.ele.order + 1
+	}
 
 	for i := lvl; i < list.level; i++ {
 		update[i].level[i].span++
@@ -101,23 +105,19 @@ func (list *SkipList) Insert(score int, ele *Entry) {
 }
 
 // delete element
-func (list *SkipList) delete(score int, ele int) *zskiplistNode {
+func (list *SkipList) delete(score int, ele *Entry) *zskiplistNode {
 	var update = list.update // [0...list.maxLevel)
 	x := list.header
 	for i := list.level - 1; i >= 0; i-- {
 		for x.level[i].forward != nil &&
 			(x.level[i].forward.score < score ||
-				x.level[i].forward.score == score && x.level[i].forward.ele.val != ele) {
+				x.level[i].forward.score == score && ele.order < x.level[i].forward.ele.order) {
 			x = x.level[i].forward
 		}
-		if i == 0 && x.level[0].forward == nil {
-			update[i] = x
-		}
 		update[i] = x
-		println(x.ele.val)
 	}
 	x = x.level[0].forward
-	if x != nil && x.score == score && x.ele.val == ele {
+	if x != nil && x.score == score && x.ele.val == ele.val {
 		for i := 0; i < list.level; i++ {
 			if update[i].level[i].forward == x {
 				update[i].level[i].forward = x.level[i].forward
@@ -138,16 +138,18 @@ func (list *SkipList) delete(score int, ele int) *zskiplistNode {
 // Find the rank for an element.
 // Returns 0 when the element cannot be found, rank otherwise.
 // Note that the rank is 1-based
-func (list *SkipList) zslGetRank(score int, ele int) uint {
+func (list *SkipList) zslGetRank(score int, ele *Entry) uint {
 	var rank uint
 	x := list.header
 	for i := list.level - 1; i >= 0; i-- {
-		for x.level[i].forward != nil && x.level[i].forward.score <= score {
+		for x.level[i].forward != nil &&
+			(x.level[i].forward.score < score ||
+				x.level[i].forward.score == score && ele.order <= x.level[i].forward.ele.order) {
 			rank += x.level[i].span
 			x = x.level[i].forward
-			if x.ele.val == ele {
-				return rank
-			}
+		}
+		if x.ele != nil && x.ele.val == ele.val {
+			return rank
 		}
 	}
 	return 0
@@ -195,15 +197,14 @@ func NewZSet() *ZSet {
 // Add a new element or update the score of an existing element
 func (zs *ZSet) Add(score int, ele int) {
 	if de := zs.dict[ele]; de != nil {
-		curscore := de.score
 		// remove and re-insert when score changes
-		if score != curscore {
-			zs.zsl.delete(curscore, ele)
+		if score != de.score {
+			zs.zsl.delete(de.score, de)
 			de.score = score
 			zs.zsl.Insert(score, de)
 		}
 	} else {
-		de = &Entry{
+		de := &Entry{
 			val:   ele,
 			score: score,
 		}
@@ -219,7 +220,7 @@ func (zs *ZSet) Delete(ele int) int {
 	if de == nil {
 		return 0
 	}
-	zs.zsl.delete(de.score, ele)
+	zs.zsl.delete(de.score, de)
 	delete(zs.dict, ele)
 	return 1
 }
@@ -228,10 +229,11 @@ func (zs *ZSet) Delete(ele int) int {
 func (zs *ZSet) Rank(ele int, reverse bool) uint {
 	de := zs.dict[ele]
 	if de != nil {
-		rank := zs.zsl.zslGetRank(de.score, ele)
-		if reverse {
-			return zs.zsl.length - rank + 1
-		} else {
+		rank := zs.zsl.zslGetRank(de.score, de)
+		if rank > 0 {
+			if reverse {
+				return zs.zsl.length - rank + 1
+			}
 			return rank
 		}
 	}
@@ -267,11 +269,15 @@ func (zs *ZSet) Length() uint {
 	return zs.zsl.length
 }
 
+// MinScore 最小积分
 func (zs *ZSet) MinScore() int {
-	return zs.zsl.header.level[0].forward.score
+	if zs.zsl.header.level[0].forward != nil {
+		return zs.zsl.header.level[0].forward.score
+	}
+	return 0
 }
 
 func (zs *ZSet) DeleteHeader() {
-	zs.zsl.delete(zs.zsl.header.level[0].forward.score, zs.zsl.header.level[0].forward.ele.val)
+	zs.zsl.delete(zs.zsl.header.level[0].forward.score, zs.zsl.header.level[0].forward.ele)
 	delete(zs.dict, zs.zsl.header.level[0].forward.ele.val)
 }
