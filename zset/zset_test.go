@@ -117,3 +117,41 @@ func BenchmarkRange(b *testing.B) {
 		zs.Range(850, 870, true)
 	}
 }
+
+var s *ZSet
+
+func init() {
+	s = NewZSet()
+}
+func BenchmarkSortedSet_Add(b *testing.B) {
+	b.StopTimer()
+	// data initialization
+	scores := make([]uint32, b.N)
+	IDs := make([]uint64, b.N)
+	for i := range IDs {
+		scores[i] = rand.Uint32() + uint32(rand.Int31n(99))
+		IDs[i] = uint64(i) + 100000
+	}
+	// BCE
+	_ = scores[:b.N]
+	_ = IDs[:b.N]
+
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		s.Add(scores[i], IDs[i])
+	}
+}
+
+func BenchmarkSortedSet_GetRank(b *testing.B) {
+	l := (uint64)(s.Length())
+	for i := 0; i < b.N; i++ {
+		s.Rank(100000+uint64(i)%l, true)
+	}
+}
+
+func BenchmarkSortedSet_GetDataByRank(b *testing.B) {
+	l := s.Length()
+	for i := 0; i < b.N; i++ {
+		s.zsl.getElementByRank(uint32(i) % l)
+	}
+}
