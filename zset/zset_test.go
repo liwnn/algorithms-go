@@ -77,7 +77,9 @@ func BenchmarkInsert(b *testing.B) {
 			key:   uint64(i),
 			score: uint32(i),
 		}
-		sl.insert(randData)
+		lvl := sl.randomLevel()
+		node := zslCreateNode(lvl, randData)
+		sl.insert(node)
 	}
 }
 
@@ -93,18 +95,20 @@ func BenchmarkChange(b *testing.B) {
 	for i := 0; i < 5000; i++ {
 		r.Add(uint32(6*i), uint64(i))
 	}
-	r.Add(10*uint32(3), uint64(5003)%5000)
-	r.Add(10*uint32(5003), uint64(5003)%5000)
 
 	for i := 0; i < b.N; i++ {
 		if r.Length() >= 5000 && 10*uint32(i) < r.MinScore() {
 			continue
 		}
 
-		r.Add(10*uint32(i), uint64(i)%5000)
+		r.Add(10*uint32(i), uint64(i)%7500)
 		if r.Length() > 5000 {
 			r.DeleteFirst()
 		}
+	}
+
+	for i := 0; i < b.N; i++ {
+		r.Rank(uint64(i)%7500, true)
 	}
 	if r.Length() != 5000 {
 		b.Error("ll")
