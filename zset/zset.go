@@ -166,45 +166,6 @@ func (list *zSkipList) delete(node *zSkipListNode) *zSkipListNode {
 	return nil
 }
 
-// update score
-func (list *zSkipList) updateScore(node *zSkipListNode, score uint32) {
-	var update = list.update // [0...list.maxLevel)
-	x := list.header
-	for i := list.level - 1; i >= 0; i-- {
-		for x.level[i].forward != nil &&
-			(x.level[i].forward.ele.Score() < node.ele.Score() ||
-				x.level[i].forward.ele.Score() == node.ele.Score() && node.order < x.level[i].forward.order) {
-			x = x.level[i].forward
-		}
-		update[i] = x
-	}
-
-	x = x.level[0].forward
-	if x != nil && x.ele.Score() == node.ele.Score() && x.ele.Key() == node.ele.Key() {
-		if score > node.ele.Score() && (x.level[0].forward == nil || score < x.level[0].forward.ele.Score()) {
-			node.ele.SetScore(score)
-			return
-		}
-
-		// remove and re-insert when score changes
-		for i := 0; i < list.level; i++ {
-			if update[i].level[i].forward == x {
-				update[i].level[i].forward = x.level[i].forward
-				update[i].level[i].span += x.level[i].span - 1
-			} else {
-				update[i].level[i].span--
-			}
-		}
-		for list.level > 0 && list.header.level[list.level-1].forward == nil {
-			list.level--
-		}
-		list.length--
-
-		node.ele.SetScore(score)
-		list.insert(node.ele)
-	}
-}
-
 // Find the rank for an element.
 // Returns 0 when the element cannot be found, rank otherwise.
 // Note that the rank is 1-based
@@ -267,8 +228,18 @@ func NewZSet() *ZSet {
 // Add a new element or update the score of an existing element
 func (zs *ZSet) Add(score uint32, key uint64) {
 	if node := zs.dict[key]; node != nil {
-		if score != node.ele.Score() {
-			zs.zsl.updateScore(node, score)
+		oldScore := node.ele.Score()
+		if score != oldScore {
+			if score > oldScore && (node.level[0].forward == nil || score < node.level[0].forward.ele.Score()) {
+				node.ele.SetScore(score)
+			} else if score < oldScore && (node.backward == zs.zsl.header || score > node.backward.ele.Score()) {
+				node.ele.SetScore(score)
+			} else {
+				zs.zsl.delete(node)
+				node.ele.SetScore(score)
+				node := zs.zsl.insert(node.ele)
+				zs.dict[key] = node
+			}
 		}
 	} else {
 		ele := &Element{

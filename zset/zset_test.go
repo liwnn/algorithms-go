@@ -17,7 +17,7 @@ func TestAdd(t *testing.T) {
 	zs.Add(10, 2)
 	zs.Add(100, 3)
 	zs.Add(1000, 4)
-	zs.Add(2, 3)
+	zs.Add(12, 3)
 	r := zs.Range(1, 5, true)
 	for _, v := range r {
 		fmt.Printf("%d:%d ", v.Key(), v.score)
@@ -47,12 +47,12 @@ func TestGetRank(t *testing.T) {
 	zs.Add(1, 3)
 	zs.Add(1, 4)
 	zs.Add(1, 5)
-	fmt.Println(zs.Rank(3, true))
+	fmt.Println(zs.Rank(4, true))
 }
 
 func TestGetElementByRank(t *testing.T) {
 	zs := NewZSet()
-	for i := 0; i < 10; i++ {
+	for i := 1; i <= 10; i++ {
 		zs.Add(uint32(i), uint64(i))
 	}
 	node := zs.zsl.getElementByRank(6)
@@ -93,11 +93,14 @@ func BenchmarkChange(b *testing.B) {
 	for i := 0; i < 5000; i++ {
 		r.Add(uint32(6*i), uint64(i))
 	}
+	r.Add(10*uint32(3), uint64(5003)%5000)
+	r.Add(10*uint32(5003), uint64(5003)%5000)
 
 	for i := 0; i < b.N; i++ {
 		if r.Length() >= 5000 && 10*uint32(i) < r.MinScore() {
 			continue
 		}
+
 		r.Add(10*uint32(i), uint64(i)%5000)
 		if r.Length() > 5000 {
 			r.DeleteFirst()
