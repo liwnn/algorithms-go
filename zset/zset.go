@@ -266,18 +266,18 @@ func (zs *ZSet) Delete(id uint64) int {
 }
 
 // Rank return 1-based rank or 0 if not exist
-func (zs *ZSet) Rank(id uint64, reverse bool) uint32 {
+func (zs *ZSet) Rank(id uint64, reverse bool) (uint32, uint32) {
 	node := zs.dict[id]
 	if node != nil {
 		rank := zs.zsl.zslGetRank(node)
 		if rank > 0 {
 			if reverse {
-				return zs.zsl.length - rank + 1
+				return zs.zsl.length - rank + 1, node.ele.score
 			}
-			return rank
+			return rank, node.ele.score
 		}
 	}
-	return 0
+	return 0, 0
 }
 
 // Range return 1-based elements in [start, end]
