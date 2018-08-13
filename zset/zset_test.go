@@ -96,20 +96,18 @@ func BenchmarkChange(b *testing.B) {
 		r.Add(uint32(6*i), uint64(i))
 	}
 
+	total := uint64(5000)
 	for i := 0; i < b.N; i++ {
 		if r.Length() >= 5000 && 10*uint32(i) < r.MinScore() {
 			continue
 		}
 
-		r.Add(10*uint32(i), uint64(i)%7500)
+		r.Add(10*uint32(i), uint64(i)%total)
 		if r.Length() > 5000 {
 			r.DeleteFirst()
 		}
 	}
 
-	for i := 0; i < b.N; i++ {
-		r.Rank(uint64(i)%7500, true)
-	}
 	if r.Length() != 5000 {
 		b.Error("ll")
 	}

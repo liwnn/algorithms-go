@@ -76,7 +76,7 @@ func zslCreate() *zSkipList {
 }
 
 // insert element
-func (list *zSkipList) insert(ele *Element) *zSkipListNode {
+func (list *zSkipList) insert(node *zSkipListNode) *zSkipListNode {
 	var update = list.update
 	var rank [skipListMaxLevel]uint32
 	x := list.header
@@ -86,14 +86,14 @@ func (list *zSkipList) insert(ele *Element) *zSkipListNode {
 		} else {
 			rank[i] = rank[i+1]
 		}
-		for x.level[i].forward != nil && x.level[i].forward.ele.Score() < ele.Score() {
+		for x.level[i].forward != nil && x.level[i].forward.ele.Score() < node.ele.Score() {
 			rank[i] += x.level[i].span
 			x = x.level[i].forward
 		}
 		update[i] = x
 	}
 
-	lvl := list.randomLevel()
+	lvl := len(node.level)
 	if lvl > list.level {
 		for i := list.level; i < lvl; i++ {
 			update[i] = list.header
@@ -102,7 +102,7 @@ func (list *zSkipList) insert(ele *Element) *zSkipListNode {
 		list.level = lvl
 	}
 
-	x = zslCreateNode(lvl, ele)
+	x = node
 	for i := 0; i < lvl; i++ {
 		x.level[i].forward = update[i].level[i].forward
 		update[i].level[i].forward = x
@@ -237,7 +237,7 @@ func (zs *ZSet) Add(score uint32, key uint64) {
 			} else {
 				zs.zsl.delete(node)
 				node.ele.SetScore(score)
-				node := zs.zsl.insert(node.ele)
+				node := zs.zsl.insert(node)
 				zs.dict[key] = node
 			}
 		}
@@ -246,7 +246,9 @@ func (zs *ZSet) Add(score uint32, key uint64) {
 			key:   key,
 			score: score,
 		}
-		node := zs.zsl.insert(ele)
+		lvl := zs.zsl.randomLevel()
+		node := zslCreateNode(lvl, ele)
+		zs.zsl.insert(node)
 		zs.dict[key] = node
 	}
 }
