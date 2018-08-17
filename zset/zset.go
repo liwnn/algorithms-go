@@ -96,6 +96,7 @@ func (list *zSkipList) insert(node *zSkipListNode) *zSkipListNode {
 	lvl := len(node.level)
 	if lvl > list.level {
 		for i := list.level; i < lvl; i++ {
+			rank[i] = 0
 			update[i] = list.header
 			update[i].level[i].span = list.length
 		}
@@ -152,7 +153,7 @@ func (list *zSkipList) delete(node *zSkipListNode) *zSkipListNode {
 				update[i].level[i].span--
 			}
 		}
-		for list.level > 0 && list.header.level[list.level-1].forward == nil {
+		for list.level > 1 && list.header.level[list.level-1].forward == nil {
 			list.level--
 		}
 		if x.level[0].forward == nil {
@@ -232,13 +233,12 @@ func (zs *ZSet) Add(score uint32, key uint64) {
 		if score != oldScore {
 			if score > oldScore && (node.level[0].forward == nil || score < node.level[0].forward.ele.Score()) {
 				node.ele.SetScore(score)
-			} else if score < oldScore && (node.backward == zs.zsl.header || score > node.backward.ele.Score()) {
+			} else if score < oldScore && (node.backward == nil || score > node.backward.ele.Score()) {
 				node.ele.SetScore(score)
 			} else {
 				zs.zsl.delete(node)
 				node.ele.SetScore(score)
-				node := zs.zsl.insert(node)
-				zs.dict[key] = node
+				zs.zsl.insert(node)
 			}
 		}
 	} else {
