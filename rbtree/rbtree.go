@@ -181,30 +181,87 @@ func (t *rbTree) minimum(x *node) *node {
 }
 
 func (t *rbTree) deleteFixup(x *node) {
+	for x != t.root && x.color == BLACK {
+		if x == x.p.left {
+			w := x.p.right
+			if w.color == RED {
+				w.color = BLACK
+				x.p.color = RED
+				t.leftRotate(x.p)
+				w = x.p.right
+			} else {
+				if w.left.color == BLACK && w.right.color == BLACK {
+					w.color = RED
+					x = x.p
+				} else if w.right.color == BLACK {
+					w.left.color = BLACK
+					w.color = RED
+					t.rightRotate(w)
+					w = x.p.right
+				} else {
+					w.color = x.p.color
+					x.p.color = BLACK
+					w.right.color = BLACK
+					t.leftRotate(x.p)
+					x = t.root
+				}
+			}
+		} else {
+			w := x.p.left
+			if w.color == RED {
+				w.color = BLACK
+				x.p.color = RED
+				t.rightRotate(x.p)
+				w = x.p.left
+			} else {
+				if w.left.color == BLACK && w.right.color == BLACK {
+					w.color = RED
+					x = x.p
+				} else if w.left.color == BLACK {
+					w.right.color = BLACK
+					w.color = RED
+					t.leftRotate(w)
+					w = x.p.left
+				} else {
+					w.color = x.p.color
+					x.p.color = BLACK
+					w.left.color = BLACK
+					t.rightRotate(x.p)
+					x = t.root
+				}
+			}
+		}
+	}
+	x.color = BLACK
 }
 
-func (t *rbTree) print(n *node) {
+func (t *rbTree) print(n *node, i int, text string) {
 	if n != t.nil {
-		t.print(n.left)
-		t.print(n.right)
 		color := "black"
 		if n.color == RED {
 			color = "red"
 		}
-		fmt.Printf("%d(%s)\n", n.key, color)
+		fmt.Printf("%d(%s:%d:%s)\n", n.key, text, i, color)
+		t.print(n.left, i+1, "left")
+		t.print(n.right, i+1, "right")
 	}
 }
 
 func main() {
 	t := newRbTree()
-	a := []int{1, 0, 3, 4}
-	x := t.root
-	for _, v := range a {
-		x = &node{
+	a := []int{41, 38, 31, 12, 19, 8}
+	b := []*node{nil, nil, nil, nil, nil, nil}
+	for i, v := range a {
+		b[i] = &node{
 			key: v,
 		}
-		t.insert(x)
+		t.insert(b[i])
 	}
-	t.delete(x)
-	t.print(t.root)
+	t.delete(b[5])
+	t.delete(b[3])
+	t.delete(b[4])
+	t.delete(b[2])
+	t.delete(b[1])
+	t.delete(b[0])
+	t.print(t.root, 1, "root")
 }
