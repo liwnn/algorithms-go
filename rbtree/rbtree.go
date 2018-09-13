@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"container/list"
+	"fmt"
+)
 
 // enum
 const (
@@ -235,18 +238,6 @@ func (t *rbTree) deleteFixup(x *node) {
 	x.color = BLACK
 }
 
-func (t *rbTree) print(n *node, i int, text string) {
-	if n != t.nil {
-		color := "black"
-		if n.color == RED {
-			color = "red"
-		}
-		fmt.Printf("%d(%s:%d:%s)\n", n.key, text, i, color)
-		t.print(n.left, i+1, "left")
-		t.print(n.right, i+1, "right")
-	}
-}
-
 func main() {
 	t := newRbTree()
 	a := []int{41, 38, 31, 12, 19, 8}
@@ -257,11 +248,42 @@ func main() {
 		}
 		t.insert(b[i])
 	}
+	print(t)
 	t.delete(b[5])
 	t.delete(b[3])
 	t.delete(b[4])
 	t.delete(b[2])
 	t.delete(b[1])
 	t.delete(b[0])
-	t.print(t.root, 1, "root")
+}
+
+func print(t *rbTree) {
+	type nodeEx struct {
+		*node
+		lvl  int
+		text string
+	}
+	nodeList := list.New()
+	nodeList.PushBack(&nodeEx{t.root, 0, "root"})
+	k := 0
+	for nodeList.Len() > 0 {
+		e := nodeList.Front()
+		n := e.Value.(*nodeEx)
+		nodeList.Remove(e)
+		color := "black"
+		if n.color == RED {
+			color = "red"
+		}
+		if n.lvl != k {
+			k = n.lvl
+			fmt.Println()
+		}
+		fmt.Printf("%d(%s:%d:%s) ", n.key, n.text, n.lvl, color)
+		if n.left != t.nil {
+			nodeList.PushBack(&nodeEx{n.left, n.lvl + 1, "left"})
+		}
+		if n.right != t.nil {
+			nodeList.PushBack(&nodeEx{n.right, n.lvl + 1, "right"})
+		}
+	}
 }
