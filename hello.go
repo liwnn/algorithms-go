@@ -34,6 +34,7 @@ func inorderTreeWalk(x *Node) {
 		top := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
 		print(top.key)
+		print(" ")
 		if top.right != nil {
 			p := top.right
 			stack = append(stack, p)
@@ -130,91 +131,114 @@ func treeInsert(t *Tree, z *Node) {
 }
 
 func treeDelete(t *Tree, z *Node) {
+	if z == nil {
+		return
+	}
 	p := z.p
 	if z.left == nil && z.right == nil {
-		if p.right == z {
-			p.right = nil
+		if t.root == z {
+			t.root = nil
 		} else {
-			p.left = nil
+			if p.right == z {
+				p.right = nil
+			} else {
+				p.left = nil
+			}
 		}
+		return
 	}
 
 	if z.right != nil && z.left == nil {
-		p.right = z.right
+		x := treeMinimum(z.right)
+		if x.p.left == x {
+			x.p.left = nil
+		} else {
+			x.p.right = nil
+		}
+		x.p = nil
+
+		x.left = z.left
+		if z.left != nil {
+			z.left.p = x
+		}
+
+		x.right = z.right
+		if z.right != nil {
+			z.right.p = x
+		}
+
+		if t.root == z {
+			t.root = x
+		} else {
+			if p.left == z {
+				p.left = x
+			} else {
+				p.right = x
+			}
+			x.p = p
+		}
+
+	}
+
+	if z.left != nil && z.right == nil {
+		if t.root == z {
+			t.root = z.left
+			return
+		}
+
+		if p.right == z {
+			p.right = z.left
+		} else {
+			p.left = z.left
+		}
+		z.left.p = p
+		return
 	}
 
 	if z.left != nil && z.right != nil {
-		x := treeMinimum(z.right)
-		if x == z.right {
-			x.p = z.p
-			x.left = z.left
+		x := treeMaximum(z.left)
 
-			if z.p.left == z {
-				x.p.left = x
-			} else {
-				x.p.right = x
-			}
+		if x.p.left == x {
+			x.p.left = nil
 		} else {
-			x.right = z.right
-			z.right.p = x
+			x.p.right = nil
+		}
+		x.p = nil
 
+		x.left = z.left
+		if z.left != nil {
 			z.left.p = x
+		}
 
+		x.right = z.right
+		if z.right != nil {
 			z.right.p = x
+		}
 
-			if x == x.p.left {
-				x.p.left = nil
-			} else {
-				x.p.right = nil
-			}
-
-			x.left = z.left
-			z.left.p = x
-			x.p = z.p
-
+		if z == t.root {
+			t.root = x
+		} else {
 			if z.p.left == z {
 				z.p.left = x
 			} else {
 				z.p.right = x
 			}
+			x.p = z.p
 		}
 	}
 }
 
 func main() {
 	var tree = &Tree{}
-	treeInsert(tree, &Node{
-		key: 7,
-	})
-	treeInsert(tree, &Node{
-		key: 3,
-	})
 
-	treeInsert(tree, &Node{
-		key: 2,
-	})
+	var k = []int32{7, 3, 2, 5, 4, 6, 8, 10, 9}
+	for _, v := range k {
+		treeInsert(tree, &Node{
+			key: v,
+		})
+	}
 
-	treeInsert(tree, &Node{
-		key: 5,
-	})
-
-	treeInsert(tree, &Node{
-		key: 4,
-	})
-
-	treeInsert(tree, &Node{
-		key: 8,
-	})
-
-	treeInsert(tree, &Node{
-		key: 9,
-	})
-
-	treeInsert(tree, &Node{
-		key: 6,
-	})
-
-	node := treeSearch(tree.root, 7)
+	node := treeSearch(tree.root, 6)
 	_ = node
 	treeDelete(tree, node)
 	inorderTreeWalk(tree.root)
