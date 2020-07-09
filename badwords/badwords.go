@@ -57,8 +57,8 @@ type BadWords struct {
 func NewBadWords() *BadWords {
 	return &BadWords{
 		hashSet:       make(map[int]*wordList),
-		lastCharCheck: bitarray.NewBitArray(0xffff),
-		oneCharCheck:  bitarray.NewBitArray(0xffff),
+		lastCharCheck: bitarray.New(0xffff),
+		oneCharCheck:  bitarray.New(0xffff),
 		maxLength:     0,
 	}
 }
@@ -68,7 +68,7 @@ func (b *BadWords) AddBadWord(word string) {
 	word = strings.ToLower(word)
 	runeWord := []rune(word)
 	if len(runeWord) == 1 {
-		b.oneCharCheck.Set(int(runeWord[0]), true)
+		b.oneCharCheck.Set(uint32(runeWord[0]), true)
 		b.fastCharCheck[int(runeWord[0])] |= 1
 	} else {
 		h := hashCode(runeWord)
@@ -83,7 +83,7 @@ func (b *BadWords) AddBadWord(word string) {
 
 		for i, c := range runeWord {
 			if i == len(runeWord)-1 {
-				b.lastCharCheck.Set(int(c), true)
+				b.lastCharCheck.Set(uint32(c), true)
 			} else if i < 7 {
 				b.fastCharCheck[int(c)] |= 1 << uint32(i)
 			} else {
@@ -122,7 +122,7 @@ func (b *BadWords) ReplaceBadWord(text string, replaceChar rune) string {
 			continue
 		}
 
-		if b.oneCharCheck.Get(int(firstChar)) {
+		if b.oneCharCheck.Get(uint32(firstChar)) {
 			runeText[index] = replaceChar
 			find = true
 			continue
@@ -145,7 +145,7 @@ func (b *BadWords) ReplaceBadWord(text string, replaceChar rune) string {
 			}
 			sub = append(sub, currentChar)
 			hash = 31*hash + int(currentChar)
-			if b.fastCharLength[firstChar]>>m&1 == 1 && b.lastCharCheck.Get(int(currentChar)) {
+			if b.fastCharLength[firstChar]>>m&1 == 1 && b.lastCharCheck.Get(uint32(currentChar)) {
 				hash := hashCode(sub)
 				if words, ok := b.hashSet[hash]; ok && words.contains(sub) {
 					find = true
@@ -185,7 +185,7 @@ func (b *BadWords) ContainsBadWord(text string) bool {
 			continue
 		}
 
-		if b.oneCharCheck.Get(int(firstChar)) {
+		if b.oneCharCheck.Get(uint32(firstChar)) {
 			return true
 		}
 
@@ -206,7 +206,7 @@ func (b *BadWords) ContainsBadWord(text string) bool {
 			}
 			sub = append(sub, currentChar)
 			hash = 31*hash + int(currentChar)
-			if b.fastCharLength[firstChar]>>m&1 == 1 && b.lastCharCheck.Get(int(currentChar)) {
+			if b.fastCharLength[firstChar]>>m&1 == 1 && b.lastCharCheck.Get(uint32(currentChar)) {
 				if words, ok := b.hashSet[hash]; ok && words.contains(sub) {
 					return true
 				}
