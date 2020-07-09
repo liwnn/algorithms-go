@@ -23,5 +23,5 @@ func main() {
 
 ## Installation
 ```
-    go get github.com/liwnn/bitarray
+    go get github.com/liwnn/algorithms-go/bitarray
 ```
