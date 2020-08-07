@@ -64,44 +64,43 @@ func (t *RBTree) insert(z *node) {
 
 func (t *RBTree) insertFixup(z *node) {
 	for z.p.color == RED {
-		break
+		if z.p == z.p.p.left { // 父节点是左节点
+			y := z.p.p.right
+			if y.color == RED { // 叔节点是红
+				z.p.color = BLACK
+				y.color = BLACK
+				z.p.p.color = RED
+				z = z.p.p
+			} else { // 叔节点是黑
+				if z == z.p.right { // 节点是右节点
+					z = z.p
+					t.leftRotate(z)
+				} else if z == z.p.left { // 节点是左节点
+					z.p.color = BLACK
+					z.p.p.color = RED
+					t.rightRotate(z.p.p)
+				}
+			}
+		} else if z.p == z.p.p.right { // 父节点是右节点
+			y := z.p.p.left
+			if y.color == RED { // 叔节点是红
+				y.color = BLACK
+				z.p.color = BLACK
+				z.p.p.color = RED
+				z = z.p.p
+			} else {
+				if z == z.p.left { // 节点是左节点
+					z = z.p
+					t.rightRotate(z)
+				} else { // 节点是右节点
+					z.p.color = BLACK
+					z.p.p.color = RED
+					t.leftRotate(z.p.p)
+				}
+			}
+		}
 	}
-	//for z.p != t.nil && z.p.color == RED {
-	//    if z.p.p.left == z.p {
-	//        if z.p.p.right.color == RED {
-	//            z.p.color = BLACK
-	//            z.p.p.color = RED
-	//            z.p.p.right.color = BLACK
-	//            z = z.p.p
-	//        } else {
-	//            if z == z.p.right {
-	//                z = z.p
-	//                t.leftRotate(z)
-	//            } else {
-	//                z.p.color = BLACK
-	//                z.p.p.color = RED
-	//                t.rightRotate(z.p.p)
-	//            }
-	//        }
-	//    } else {
-	//        if z.p.p.left.color == RED {
-	//            z.p.color = BLACK
-	//            z.p.p.color = RED
-	//            z.p.p.left.color = BLACK
-	//            z = z.p.p
-	//        } else {
-	//            if z == z.p.right {
-	//                z.p.color = BLACK
-	//                z.p.p.color = RED
-	//                t.leftRotate(z.p.p)
-	//            } else {
-	//                z = z.p
-	//                t.rightRotate(z)
-	//            }
-	//        }
-	//    }
-	//}
-	//t.root.color = BLACK
+	t.root.color = BLACK
 }
 
 // x                 y
@@ -155,6 +154,26 @@ func (t *RBTree) rightRotate(x *node) {
 }
 
 func (t *RBTree) delete(z *node) {
+	var x *node
+	if z.left == t.nil {
+		x = z.right
+		t.transplant(z.p, z.right)
+	} else if z.right == t.nil {
+		x = z.left
+		t.transplant(z.p, z.left)
+	} else {
+		y := t.minimum(z.right)
+		if y.p == z {
+		} else {
+			t.transplant(y, y.right)
+			y.right = z.right
+			y.right.p = y
+		}
+		t.transplant(z, y)
+		y.left = z.left
+		y.left.p = y
+	}
+
 	//y := z
 	//var x *node
 	//yOriginalColor := y.color
@@ -190,9 +209,9 @@ func (t *RBTree) delete(z *node) {
 func (t *RBTree) transplant(u *node, v *node) {
 	if u.p == t.nil {
 		t.root = v
-	} else if u == u.p.left {
+	} else if u.p.left == u {
 		u.p.left = v
-	} else if u == u.p.right {
+	} else {
 		u.p.right = v
 	}
 	v.p = u.p
@@ -311,6 +330,7 @@ func PrintTree(t *RBTree) {
 		for i := 0; i < 1<<j; i++ {
 			n := levelNode[j][i]
 			if n == nil {
+				fmt.Printf("%*c", w*2, ' ')
 				continue
 			}
 			if n != t.nil {
@@ -318,12 +338,12 @@ func PrintTree(t *RBTree) {
 				if n.color == RED {
 					fmt.Printf("%c[1;41;37m(%d)%c[0m", 0x1B, n.key, 0x1B)
 				} else {
-					fmt.Printf("%c[1;40;30m(%d)%c[0m", 0x1B, n.key, 0x1B)
+					fmt.Printf("%c[1;40;37m(%d)%c[0m", 0x1B, n.key, 0x1B)
 				}
 				fmt.Printf("%*c", w-1, ' ')
 			} else {
 				fmt.Printf("%*c", w-2, ' ') // (key)
-				fmt.Printf("%c[1;40;30m%v%c[0m", 0x1B, "nil", 0x1B)
+				fmt.Printf("%c[1;40;37m%v%c[0m", 0x1B, "nil", 0x1B)
 				fmt.Printf("%*c", w-1, ' ')
 			}
 		}
@@ -333,7 +353,7 @@ func PrintTree(t *RBTree) {
 
 func main() {
 	t := newRBTree()
-	a := []int{11, 7}
+	a := []int{11, 2, 14, 1, 15, 7, 5, 8, 4}
 	b := make([]*node, 0, len(a))
 	for _, v := range a {
 		n := &node{
