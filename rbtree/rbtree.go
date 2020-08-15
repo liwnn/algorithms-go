@@ -154,6 +154,8 @@ func (t *RBTree) rightRotate(x *node) {
 }
 
 func (t *RBTree) delete(z *node) {
+	var y = z // y为删除的节点或u移至树内的节点
+	yOriginalColor = y.color
 	var x *node
 	if z.left == t.nil {
 		x = z.right
@@ -162,8 +164,13 @@ func (t *RBTree) delete(z *node) {
 		x = z.left
 		t.transplant(z.p, z.left)
 	} else {
-		y := t.minimum(z.right)
+		// y为z的后继，把y替代z的位置及颜色，则y的颜色为实际需要删除的颜色,
+		// 这样只需处理y的右子树的平衡修正
+		y = t.minimum(z.right)
+		yOriginalColor = y.color
+		x = y.right
 		if y.p == z {
+			//x.p = y
 		} else {
 			t.transplant(y, y.right)
 			y.right = z.right
@@ -172,37 +179,11 @@ func (t *RBTree) delete(z *node) {
 		t.transplant(z, y)
 		y.left = z.left
 		y.left.p = y
+		y.color = z.color
 	}
-
-	//y := z
-	//var x *node
-	//yOriginalColor := y.color
-	//if z.left == t.nil {
-	//    x = z.right
-	//    t.transplant(z, z.right)
-	//} else if z.right == t.nil {
-	//    x = z.left
-	//    t.transplant(z, z.left)
-	//} else {
-	//    y = t.minimum(z.right)
-	//    yOriginalColor = y.color
-	//    x := y.right
-	//    if y.p == z { // y == z.right
-	//        x.p = y
-	//    } else {
-	//        t.transplant(y, y.right)
-	//        y.right = z.right
-	//        y.right.p = y
-	//    }
-	//    t.transplant(z, y)
-	//    y.left = z.left
-	//    y.left.p = y
-	//    y.color = z.color
-	//}
-	//
-	//if yOriginalColor == BLACK {
-	//    t.deleteFixup(x)
-	//}
+	if yOriginalColor == BLACK {
+		t.deleteFixup(x)
+	}
 }
 
 // v 替换u
