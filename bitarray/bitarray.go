@@ -20,7 +20,7 @@ func New(length uint32) *BitArray {
 
 // Set index to 1 if value is true, or set index to 0 if value is false.
 func (b *BitArray) Set(index uint32, value bool) {
-	if index >= uint32(len(b.values)) << 3 {
+	if index >= uint32(len(b.values))<<3 {
 		if !value {
 			return
 		}
@@ -35,13 +35,13 @@ func (b *BitArray) Set(index uint32, value bool) {
 		} else if int(size) <= cap(b.values) {
 			b.values = b.values[:size]
 		} else {
-			cap := size
+			capacity := size
 			if size >= 1024 {
-				cap += size / 4
+				capacity += size / 4
 			} else {
-				cap += size // double cap
+				capacity += size // double cap
 			}
-			v := make([]byte, size, size<<2)
+			v := make([]byte, size, capacity)
 			copy(v, b.values)
 			b.values = v
 		}
@@ -56,7 +56,7 @@ func (b *BitArray) Set(index uint32, value bool) {
 
 // Get true if index is set 1, or return false.
 func (b *BitArray) Get(index uint32) bool {
-	if uint64(index) >= uint64(len(b.values)) << 3 {
+	if uint64(index) >= uint64(len(b.values))<<3 {
 		return false
 	}
 	return (b.values[index>>3] & (1 << (index & 7))) != 0
