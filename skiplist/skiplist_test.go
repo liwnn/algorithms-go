@@ -1,7 +1,6 @@
 package skiplist
 
 import (
-	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -10,18 +9,23 @@ import (
 func TestExample(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 
+	var insertNum = 2
 	sl := NewSkipList()
-	for i := 0; i < 2; i++ {
-		sl.Insert(i, 1000+i)
+	for i := 0; i < insertNum; i++ {
+		sl.Insert(i, i)
 	}
 
-	for i := sl.header.forward[0]; i != nil; i = i.forward[0] {
-		fmt.Println(i.key, i.value)
+	var i int
+	for node := sl.header.forward[0]; node != nil; node = node.forward[0] {
+		if node.key != i {
+			t.Error("insert", node)
+		}
+		i++
 	}
 
 	v, ok := sl.Search(1)
-	if ok {
-		fmt.Println(v)
+	if !ok || v != 1 {
+		t.Error("search")
 	}
 
 	sl.Delete(1)
@@ -33,11 +37,8 @@ func TestInsert(t *testing.T) {
 }
 
 func BenchmarkInsert(b *testing.B) {
+	l := NewSkipList()
 	for i := 0; i < b.N; i++ {
-		l := NewSkipList()
-		l.maxLevel = 8
-		for j := 0; j < 5000*3; j++ {
-			l.Insert(i/5000, i)
-		}
+		l.Insert(i, i)
 	}
 }
